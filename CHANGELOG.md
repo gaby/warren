@@ -37,6 +37,14 @@ Releases **0.9.10 and earlier** live in
   `matchRoute`, which `handleRequest` calls outside its try/catch, so
   the connection dropped instead of returning warren's error envelope.
   Such a path is now a plain 404.
+- **Salvage events no longer publish the host bundle path to spectators**
+  (warren-7c1e). `salvagePath` is a `REDACTED_RUN_FIELDS` member, but
+  `reap.workspace_salvaged` and `reap.workspace_salvage_recorded` served
+  the identical absolute path to anonymous readers as `bundlePath`, and
+  `reap.workspace_salvage_failed` carried it again inside raw git stderr.
+  `bundlePath` / `salvagePath` now censor on the key, and the
+  salvage-failed payload joins the body/log split. `rescueRef` stays in
+  the clear — it is a branch name holding the already-public run id.
 
 ### Fixed
 

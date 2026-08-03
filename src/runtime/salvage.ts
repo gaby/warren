@@ -34,7 +34,7 @@
  * as `reap.workspace_salvaged` / `reap.workspace_salvage_failed` run events.
  */
 
-import { isAbsolute, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 import { ValidationError } from "../core/errors.ts";
 
 /** Prefix for the per-run rescue branch pushed to the project's origin. */
@@ -84,7 +84,7 @@ export function salvageBundlePath(salvageDir: string, runId: string): string {
 	}
 	const root = resolve(salvageDir);
 	const target = resolve(root, salvageBundleFileName(runId));
-	if (!target.startsWith(root + sep) || !isAbsolute(target)) {
+	if (!target.startsWith(root + sep)) {
 		throw new ValidationError(`salvage bundle path for run ${runId} escapes the salvage directory`);
 	}
 	return target;
