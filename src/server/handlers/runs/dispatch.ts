@@ -4,7 +4,7 @@ import { spawnRun } from "../../../runs/index.ts";
 import type { IdempotentDispatch } from "../../idempotency.ts";
 import { jsonResponse } from "../../response.ts";
 import type { RouteHandler, ServerDeps } from "../../types.ts";
-import { optionalObject } from "../body-fields.ts";
+import { optionalObject, optionalPositiveNumber } from "../body-fields.ts";
 import { defaultSpawn, optionalString, readJsonBody, requireString } from "../index.ts";
 
 /**
@@ -115,6 +115,9 @@ export function createRunHandler(deps: ServerDeps): RouteHandler {
 		// warren-97a2: the HTTP-collapsed `warren run` labels its dispatches
 		// trigger=cli; omitting the field preserves the spawnRun default.
 		const trigger = optionalString(body, "trigger");
+		// Per-dispatch spend cap (warren-a63d chain: this > agent frontmatter >
+		// project default), enforced mid-run by the event bridge.
+		const maxCostUsd = optionalPositiveNumber(body, "maxCostUsd");
 		const {
 			agentName,
 			projectId,
@@ -147,6 +150,7 @@ export function createRunHandler(deps: ServerDeps): RouteHandler {
 			providerOverride,
 			modelOverride,
 			...(trigger !== undefined ? { trigger } : {}),
+			...(maxCostUsd !== undefined ? { maxCostUsdOverride: maxCostUsd } : {}),
 			seedId,
 			...(targetBranch !== undefined ? { targetBranch } : {}),
 			...(parentRunId !== undefined ? { parentRunId } : {}),

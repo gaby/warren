@@ -109,6 +109,11 @@ and `loadWarrenConfig()` surfaces it. Notable knobs:
 - `agent.skipGitHooks` (default `false`) — set `true` to skip arming
   the project's git pre-commit gate on the host clone before each run
   (warren-8f4c).
+- `maxCostUsd` — project-wide default per-run USD spend cap
+  (warren-a63d), enforced mid-run by the event bridge. Weakest source in
+  the cap chain: dispatch override (`POST /runs` `maxCostUsd`,
+  `warren run --max-cost-usd`, or a trigger entry's cap) > agent
+  `frontmatter.maxCostUsd` > this default.
 - `admission.maxConcurrentRuns` — per-project cap on simultaneous
   non-terminal runs, enforced by the K8s admission gate. Over the cap
   the gate rejects the dispatch with HTTP 429 and reason

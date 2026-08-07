@@ -18,7 +18,7 @@
  * subprocess.
  */
 
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, InvalidArgumentError } from "commander";
 import { PLAN_RUN_STATES, type PlanRunState } from "../core/wire.ts";
 import { openDatabase } from "../db/client.ts";
 import { parseDatabaseUrl } from "../db/url.ts";
@@ -49,6 +49,20 @@ import {
 } from "./output.ts";
 import type { PlanRunOutput } from "./plan-run-renderer.ts";
 import { registerRunCommands } from "./register-run-commands.ts";
+
+/**
+ * Commander argParser for `--max-cost-usd`. Rejects non-positive and
+ * non-numeric values at the flag boundary so a typo'd cap fails the
+ * command instead of coercing downstream into "no cap" (warren-a63d
+ * fail-open rule).
+ */
+function parseMaxCostUsd(value: string): number {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed <= 0) {
+		throw new InvalidArgumentError("must be a positive number of USD");
+	}
+	return parsed;
+}
 
 export function buildProgram(baseContext: CliContext): Command {
 	const program = new Command();
@@ -122,7 +136,12 @@ export function buildProgram(baseContext: CliContext): Command {
 			.requiredOption("-p, --prompt <text>", "prompt text the agent receives")
 			.option("--trigger <label>", "run trigger label", "cli")
 			.option("--provider <name>", "per-run override of agent frontmatter.provider")
-			.option("--model <name>", "per-run override of agent frontmatter.model"),
+			.option("--model <name>", "per-run override of agent frontmatter.model")
+			.option(
+				"--max-cost-usd <usd>",
+				"per-run USD spend cap; wins over the agent's own and the project default",
+				parseMaxCostUsd,
+			),
 	).action(
 		async (
 			agent: string,
@@ -132,6 +151,7 @@ export function buildProgram(baseContext: CliContext): Command {
 				trigger?: string;
 				provider?: string;
 				model?: string;
+				maxCostUsd?: number;
 			} & RemoteOpts,
 		) => {
 			const client = resolveWarrenClient(context.env, clientFlags(opts));
@@ -145,6 +165,7 @@ export function buildProgram(baseContext: CliContext): Command {
 					...(opts.trigger !== undefined ? { trigger: opts.trigger } : {}),
 					...(opts.provider !== undefined ? { providerOverride: opts.provider } : {}),
 					...(opts.model !== undefined ? { modelOverride: opts.model } : {}),
+					...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
 				},
 			);
 			process.exit(result.exitCode);

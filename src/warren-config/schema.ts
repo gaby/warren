@@ -366,6 +366,10 @@ export const DefaultsConfigSchema = z
 		resources: ResourcesConfigSchema.optional(),
 		// warren-b6f2: per-project admission control (K8s, design §3.3).
 		admission: AdmissionConfigSchema.optional(),
+		// Project-wide default spend cap (USD), the weakest source in the
+		// warren-a63d cap chain: dispatch override > trigger > agent
+		// frontmatter > this. Enforced mid-run by the event bridge.
+		maxCostUsd: z.number().positive("maxCostUsd must be positive").finite().optional(),
 		// warren-05ea: opt-in polling CI-fixer; missing block → poller skips it.
 		ciFixer: CiFixerConfigSchema.optional(),
 		// warren-3db0: opt-in closed-loop healer; missing block → intake skips it.
