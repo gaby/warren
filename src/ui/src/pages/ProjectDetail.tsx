@@ -289,6 +289,12 @@ function TriggerRow({
 						<dd className="break-words">{trigger.prompt}</dd>
 					</>
 				) : null}
+				{trigger.maxCostUsd !== undefined ? (
+					<>
+						<dt className="text-(--color-muted-foreground)">maxCostUsd</dt>
+						<dd className="font-mono">${trigger.maxCostUsd}</dd>
+					</>
+				) : null}
 				<dt className="text-(--color-muted-foreground)">last fired</dt>
 				<dd>
 					{trigger.lastFiredAt !== null ? (

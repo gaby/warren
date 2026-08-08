@@ -511,6 +511,8 @@ export interface TriggerSummary {
 	role: string;
 	timezone?: string;
 	prompt?: string;
+	/** warren-a63d: the entry's per-run spend cap, surfaced so operators can verify it. */
+	maxCostUsd?: number;
 	lastFiredAt: string | null;
 	nextFireAt: string | null;
 	lastRunId: string | null;
