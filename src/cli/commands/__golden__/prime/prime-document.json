@@ -186,6 +186,10 @@
           "description": "per-run override of agent frontmatter.model"
         },
         {
+          "flags": "--max-cost-usd <usd>",
+          "description": "per-child USD spend cap applied to every child dispatch"
+        },
+        {
           "flags": "--no-follow",
           "description": "dispatch and exit without tailing events"
         },

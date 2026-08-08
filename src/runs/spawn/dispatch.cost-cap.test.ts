@@ -7,22 +7,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { WarrenDb } from "../../db/client.ts";
 import type { Repos } from "../../db/repos/index.ts";
+import { createWarrenConfigCache } from "../../warren-config/cache.ts";
 import { spawnRun } from "./index.ts";
 import { makeAgentJson, makeBurrowClient, makeProvider, setupRepos } from "./test-helpers.ts";
 
-const capConfigs = (maxCostUsd: number) => ({
-	get: async () => ({
-		triggers: null,
-		defaults: { maxCostUsd },
-		prTemplate: null,
-		sourceFile: null,
-		errors: [],
-		warnings: [],
-	}),
-	invalidate: () => undefined,
-	clear: () => undefined,
-	size: () => 0,
-});
+const capConfigs = (maxCostUsd: number) =>
+	createWarrenConfigCache({
+		load: async () => ({
+			triggers: null,
+			defaults: { maxCostUsd },
+			prTemplate: null,
+			sourceFile: null,
+			errors: [],
+			warnings: [],
+		}),
+	});
 
 const dispatchedFrontmatter = (
 	calls: readonly { path: string; body?: unknown }[],
@@ -75,6 +74,25 @@ describe("spawnRun: maxCostUsd precedence (warren-a63d)", () => {
 			warrenConfigs: capConfigs(2.5),
 		});
 		expect(dispatchedFrontmatter(calls).maxCostUsd).toBe(1);
+	});
+
+	test("leaves a malformed agent cap in place instead of papering over it with the project default", async () => {
+		// Fail-open contract: an unreadable agent cap means "no cap", and the
+		// frozen rendered_agent_json must keep the typo'd value as evidence.
+		await repos.agents.upsert({
+			name: "pi",
+			renderedJson: makeAgentJson({ name: "pi", frontmatter: { maxCostUsd: "5O" } }),
+		});
+		const { client, calls } = makeBurrowClient();
+		await spawnRun({
+			repos,
+			runtimeProvider: makeProvider(client),
+			agentName: "pi",
+			projectId: "prj_xxxxxxxxxxxx",
+			prompt: "p",
+			warrenConfigs: capConfigs(2.5),
+		});
+		expect(dispatchedFrontmatter(calls).maxCostUsd).toBe("5O");
 	});
 
 	test("lets an explicit maxCostUsdOverride win over the agent cap and the project default", async () => {

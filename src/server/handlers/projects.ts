@@ -355,6 +355,9 @@ export function runProjectTriggerHandler(deps: ServerDeps): RouteHandler {
 			projectId: project.id,
 			prompt,
 			trigger: "manual-trigger",
+			// warren-a63d: a manual fire honors the entry's spend cap exactly like
+			// a cron fire (src/triggers/dispatch.ts) — same override slot.
+			...(trigger.maxCostUsd !== undefined ? { maxCostUsdOverride: trigger.maxCostUsd } : {}),
 			metadata: {
 				triggerId: trigger.id,
 				cron: trigger.cron,

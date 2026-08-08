@@ -23,6 +23,7 @@ import { PLAN_RUN_STATES, type PlanRunState } from "../core/wire.ts";
 import { openDatabase } from "../db/client.ts";
 import { parseDatabaseUrl } from "../db/url.ts";
 import { VERSION } from "../index.ts";
+import { coerceCostCap } from "../runs/cost-cap.ts";
 import { addClientFlags, clientFlags, type RemoteOpts, resolveWarrenClient } from "./client.ts";
 import { runAddProject } from "./commands/add-project.ts";
 import { registerBootstrapCommands } from "./commands/bootstrap.ts";
@@ -51,14 +52,15 @@ import type { PlanRunOutput } from "./plan-run-renderer.ts";
 import { registerRunCommands } from "./register-run-commands.ts";
 
 /**
- * Commander argParser for `--max-cost-usd`. Rejects non-positive and
- * non-numeric values at the flag boundary so a typo'd cap fails the
- * command instead of coercing downstream into "no cap" (warren-a63d
- * fail-open rule).
+ * Commander argParser for `--max-cost-usd`. Delegates validity to the
+ * canonical warren-a63d cap reader (`coerceCostCap`) so the flag boundary
+ * and the bridge's enforcement can never disagree about what a valid cap
+ * is; a value the reader maps to "no cap" fails the command loudly here
+ * instead of coercing downstream into an uncapped run.
  */
 function parseMaxCostUsd(value: string): number {
-	const parsed = Number(value);
-	if (!Number.isFinite(parsed) || parsed <= 0) {
+	const parsed = coerceCostCap(value);
+	if (parsed === null) {
 		throw new InvalidArgumentError("must be a positive number of USD");
 	}
 	return parsed;
@@ -341,6 +343,11 @@ export function buildProgram(baseContext: CliContext): Command {
 			.option("--ref <git-ref>", "git ref to clone child workspaces from")
 			.option("--provider <name>", "per-run override of agent frontmatter.provider")
 			.option("--model <name>", "per-run override of agent frontmatter.model")
+			.option(
+				"--max-cost-usd <usd>",
+				"per-child USD spend cap applied to every child dispatch",
+				parseMaxCostUsd,
+			)
 			.option("--no-follow", "dispatch and exit without tailing events")
 			.option("--output <mode>", "output mode: ndjson (default) or pretty", "ndjson"),
 	).action(
@@ -353,6 +360,7 @@ export function buildProgram(baseContext: CliContext): Command {
 				ref?: string;
 				provider?: string;
 				model?: string;
+				maxCostUsd?: number;
 				follow: boolean;
 				output?: string;
 			} & RemoteOpts,
@@ -371,6 +379,7 @@ export function buildProgram(baseContext: CliContext): Command {
 					...(opts.ref !== undefined ? { ref: opts.ref } : {}),
 					...(opts.provider !== undefined ? { provider: opts.provider } : {}),
 					...(opts.model !== undefined ? { model: opts.model } : {}),
+					...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
 				},
 			);
 			process.exit(result.exitCode);

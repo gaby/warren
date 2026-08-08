@@ -113,7 +113,8 @@ and `loadWarrenConfig()` surfaces it. Notable knobs:
   (warren-a63d), enforced mid-run by the event bridge. Weakest source in
   the cap chain: dispatch override (`POST /runs` `maxCostUsd`,
   `warren run --max-cost-usd`, or a trigger entry's cap) > agent
-  `frontmatter.maxCostUsd` > this default.
+  `frontmatter.maxCostUsd` > this default — applied only when the agent
+  declares no cap (malformed agent values still fail open).
 - `admission.maxConcurrentRuns` — per-project cap on simultaneous
   non-terminal runs, enforced by the K8s admission gate. Over the cap
   the gate rejects the dispatch with HTTP 429 and reason

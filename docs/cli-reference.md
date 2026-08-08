@@ -180,6 +180,7 @@ warren plan run [options] <plan-id>
 | `--ref <git-ref>` |  |  | git ref to clone child workspaces from |
 | `--provider <name>` |  |  | per-run override of agent frontmatter.provider |
 | `--model <name>` |  |  | per-run override of agent frontmatter.model |
+| `--max-cost-usd <usd>` |  |  | per-child USD spend cap applied to every child dispatch |
 | `--no-follow` |  |  | dispatch and exit without tailing events |
 | `--output <mode>` |  | `"ndjson"` | output mode: ndjson (default) or pretty |
 | `--url <url>` |  |  | warren server base URL (env WARREN_BASE_URL) |

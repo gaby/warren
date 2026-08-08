@@ -46,7 +46,7 @@ import type { RunSpec, RuntimeProvider } from "../../runtime/contract.ts";
 import { interactiveRuntimeOverride } from "../../warren-config/schema.ts";
 import { composeRunBranch, resolveRunBranchPrefix } from "../branch.ts";
 import { parseBurrowConfig } from "../burrow-config.ts";
-import { readMaxCostUsd } from "../cost-cap.ts";
+import { resolveCapOverride } from "../cost-cap.ts";
 import { lifecycleBus } from "../lifecycle-bus.ts";
 import { buildSeedFiles } from "../seed.ts";
 import { validateTargetBranch } from "../target-branch.ts";
@@ -137,13 +137,17 @@ export async function spawnRun(input: SpawnRunInput): Promise<SpawnRunResult> {
 		projectDefaults?.defaultProvider,
 	);
 	const effectiveModel = resolveOverride(input.modelOverride, projectDefaults?.defaultModel);
-	// warren-a63d: fold the per-trigger / per-dispatch spend cap on top
-	// (override > agent). The project-wide `.warren/config.yaml` `maxCostUsd`
-	// is the weakest source: it applies only when no override arrived and the
-	// agent's own frontmatter carries no readable cap.
-	const capOverride =
-		input.maxCostUsdOverride ??
-		(readMaxCostUsd(baseAgent.frontmatter) === null ? projectDefaults?.maxCostUsd : undefined);
+	// warren-a63d: fold the per-dispatch spend cap on top. The full chain
+	// (override > agent frontmatter > project default, with malformed agent
+	// values still failing open) lives in resolveCapOverride — cost-cap.ts
+	// owns the semantics, this site only feeds it the three sources.
+	const capOverride = resolveCapOverride({
+		...(input.maxCostUsdOverride !== undefined ? { overrideUsd: input.maxCostUsdOverride } : {}),
+		frontmatter: baseAgent.frontmatter,
+		...(projectDefaults?.maxCostUsd !== undefined
+			? { projectDefaultUsd: projectDefaults.maxCostUsd }
+			: {}),
+	});
 	const agent = withMaxCostUsdOverride(
 		withProviderOverrides(baseAgent, {
 			...(effectiveProvider !== undefined ? { providerOverride: effectiveProvider } : {}),
