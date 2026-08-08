@@ -464,6 +464,12 @@ export interface DefaultsConfig {
 	 */
 	runBranchPrefix?: string;
 	qualityGate?: string;
+	/**
+	 * warren-a63d: project-wide default per-run USD spend cap, the weakest
+	 * source in the cap chain (dispatch override > agent frontmatter > this).
+	 * Surfaced read-only on the ProjectDetail config panel.
+	 */
+	maxCostUsd?: number;
 }
 
 export interface WarrenConfigResponse {

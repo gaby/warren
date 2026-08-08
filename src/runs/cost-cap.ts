@@ -75,10 +75,14 @@ export function readMaxCostUsd(frontmatter: Readonly<Record<string, unknown>>): 
  * place, no fold) > the project-wide `projectDefaultUsd`.
  *
  * The project default applies only when the frontmatter carries no
- * `maxCostUsd` at all. A present-but-malformed agent value is NOT
- * replaced: it stays on the frozen `rendered_agent_json` (preserving the
- * evidence of the typo) and fails OPEN at the bridge per the module
- * rule, exactly as it did before project defaults existed.
+ * `maxCostUsd` at all. An explicit `null` counts as "no declaration" —
+ * the same reading the HTTP boundary gives a `null` body field
+ * (`optionalPositiveNumber`) — so the default applies there too; null
+ * is an explicit non-value, not a typo. A present-but-malformed agent
+ * value (a string, a negative) is NOT replaced: it stays on the frozen
+ * `rendered_agent_json` (preserving the evidence of the typo) and fails
+ * OPEN at the bridge per the module rule, exactly as it did before
+ * project defaults existed.
  *
  * Returns `undefined` when nothing should be folded.
  */
