@@ -18,12 +18,11 @@
  * subprocess.
  */
 
-import { Command, CommanderError, InvalidArgumentError } from "commander";
+import { Command, CommanderError } from "commander";
 import { PLAN_RUN_STATES, type PlanRunState } from "../core/wire.ts";
 import { openDatabase } from "../db/client.ts";
 import { parseDatabaseUrl } from "../db/url.ts";
 import { VERSION } from "../index.ts";
-import { coerceCostCap } from "../runs/cost-cap.ts";
 import { addClientFlags, clientFlags, type RemoteOpts, resolveWarrenClient } from "./client.ts";
 import { runAddProject } from "./commands/add-project.ts";
 import { registerBootstrapCommands } from "./commands/bootstrap.ts";
@@ -37,6 +36,7 @@ import { runPlanList, runPlanStatus } from "./commands/plan-status.ts";
 import { runRun } from "./commands/run.ts";
 import { runServe } from "./commands/serve.ts";
 import { withCliDb } from "./context.ts";
+import { parseMaxCostUsd, resolveCliExitCode } from "./flags.ts";
 import {
 	type CliContext,
 	defaultSpawn,
@@ -50,21 +50,6 @@ import {
 } from "./output.ts";
 import type { PlanRunOutput } from "./plan-run-renderer.ts";
 import { registerRunCommands } from "./register-run-commands.ts";
-
-/**
- * Commander argParser for `--max-cost-usd`. Delegates validity to the
- * canonical warren-a63d cap reader (`coerceCostCap`) so the flag boundary
- * and the bridge's enforcement can never disagree about what a valid cap
- * is; a value the reader maps to "no cap" fails the command loudly here
- * instead of coercing downstream into an uncapped run.
- */
-function parseMaxCostUsd(value: string): number {
-	const parsed = coerceCostCap(value);
-	if (parsed === null) {
-		throw new InvalidArgumentError("must be a positive number of USD");
-	}
-	return parsed;
-}
 
 export function buildProgram(baseContext: CliContext): Command {
 	const program = new Command();
@@ -485,13 +470,12 @@ if (import.meta.main) {
 	};
 	const program = buildProgram(context);
 	program.parseAsync(process.argv).catch((err) => {
-		// Commander throws for unknown commands / missing required args;
-		// it has already printed a usage hint to stderr.
-		const code = (err as { exitCode?: unknown }).exitCode;
-		if (typeof code === "number") {
-			process.exit(code);
+		// Commander throws for unknown commands / missing required args /
+		// invalid option values; it has already printed a usage hint to
+		// stderr, so only non-commander rejections need a message here.
+		if (!(err instanceof CommanderError)) {
+			process.stderr.write(`warren: ${formatError(err)}\n`);
 		}
-		process.stderr.write(`warren: ${formatError(err)}\n`);
-		process.exit(1);
+		process.exit(resolveCliExitCode(err));
 	});
 }

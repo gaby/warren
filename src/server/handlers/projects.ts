@@ -325,7 +325,27 @@ export function runProjectTriggerHandler(deps: ServerDeps): RouteHandler {
 
 		// Project 404 must come before warren-config load so a typo'd
 		// project id doesn't end up parsing some other project's YAML.
-		const project = await deps.repos.projects.require(id);
+		const required = await deps.repos.projects.require(id);
+
+		// Refresh the clone BEFORE reading the trigger entry. The cached
+		// config snapshot predates spawnRun's internal refresh, so without
+		// this the entry (role / prompt / maxCostUsd) could come from an
+		// older commit than the project defaults resolved at spawn time —
+		// and the entry's cap rides the override tier, so a stale cap would
+		// beat freshly-loaded limits. refreshProject invalidates the
+		// per-project config cache, making the whole dispatch read one
+		// post-refresh snapshot; spawnRun's own refresh then lands on the
+		// same commit.
+		const refreshed = await (deps.refreshProjectFn ?? refreshProject)({
+			repo: deps.repos.projects,
+			config: deps.projectsConfig,
+			id: required.id,
+			token: deps.autoOpenPr?.gitToken,
+			spawn: deps.spawn ?? defaultSpawn,
+			...(deps.now !== undefined ? { now: deps.now } : {}),
+			...(deps.warrenConfigs !== undefined ? { warrenConfigs: deps.warrenConfigs } : {}),
+		});
+		const project = refreshed.project;
 
 		const loaded: LoadedWarrenConfig =
 			deps.warrenConfigs !== undefined
