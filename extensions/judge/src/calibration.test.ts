@@ -189,6 +189,21 @@ describe("calibrateOnce", () => {
 		deps.verdicts.close();
 	});
 
+	test("draws the sample from the entropy source, not from the sorted head", async () => {
+		// random() → just under 1 always picks the LAST remaining candidate.
+		// The pre-fix shuffle pushed the element that used to sit at slot i,
+		// which is candidates[i] regardless of the draw — so every pass took
+		// the first sampleSize ids in sorted order.
+		const { deps, judged } = makeDeps({ sampleSize: 3, random: () => 0.999 });
+		seedCheapVerdicts(deps.verdicts, ["run-1", "run-2", "run-3", "run-4", "run-5"]);
+
+		await calibrateOnce(deps);
+		expect(judged[0]).toBe("run-5");
+		expect(new Set(judged).size).toBe(3);
+		expect(judged).not.toEqual(["run-1", "run-2", "run-3"]);
+		deps.verdicts.close();
+	});
+
 	test("excludes runs the strong model already resolved, verdict or marker", async () => {
 		const { deps, judged } = makeDeps();
 		seedCheapVerdicts(deps.verdicts, ["run-1", "run-2", "run-3"]);

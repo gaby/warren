@@ -305,10 +305,14 @@ function sampleRuns(candidates: string[], size: number, random: () => number): s
 	const n = Math.min(size, pool.length);
 	for (let i = 0; i < n; i += 1) {
 		const j = i + Math.floor(random() * (pool.length - i));
-		const tmp = pool[i] as string;
-		pool[i] = pool[j] as string;
-		pool[j] = tmp;
-		picked.push(tmp);
+		const chosen = pool[j] as string;
+		pool[j] = pool[i] as string;
+		pool[i] = chosen;
+		// The element swapped INTO slot i is the pick. Pushing the element
+		// that used to sit at i selected candidates[0..n) in sorted order on
+		// every pass, so the live "random sample" walked the run ids
+		// alphabetically (551 qwen markers in id order, 2026-08-21..09-01).
+		picked.push(chosen);
 	}
 	return picked;
 }
