@@ -61,7 +61,7 @@ export function DispatchPage() {
 					selectedProject={s.selectedProject}
 					agent={s.draft.agent}
 					project={s.draft.project}
-					ref={s.draft.ref}
+					gitRef={s.draft.ref}
 					seedId={s.draft.seedId}
 					prompt={s.draft.prompt}
 					providerOverride={s.draft.providerOverride}
@@ -85,7 +85,7 @@ export function DispatchPage() {
 				/>
 				<ResolvedManifest
 					project={s.selectedProject}
-					ref={s.draft.ref}
+					gitRef={s.draft.ref}
 					seedId={s.draft.seedId}
 					agent={s.draft.agent}
 					provider={s.draft.providerOverride.trim()}

@@ -100,7 +100,8 @@ export interface DispatchFormProps {
 	selectedProject: ProjectRow | undefined;
 	agent: string;
 	project: string;
-	ref: string;
+	/** Git ref draft value — named gitRef because `ref` is a reserved JSX prop. */
+	gitRef: string;
 	seedId: string;
 	prompt: string;
 	providerOverride: string;
@@ -176,7 +177,7 @@ export function DispatchForm(props: DispatchFormProps) {
 						>
 							<input
 								className={controlClass}
-								value={props.ref}
+								value={props.gitRef}
 								onChange={(e) => props.onRef(e.target.value)}
 								placeholder={props.selectedProject?.defaultBranch ?? "default branch"}
 								autoComplete="off"
