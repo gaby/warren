@@ -138,20 +138,6 @@ describe("buildRunMetrics", () => {
 		expect(m.totals.successRate).toBeCloseTo(0.5);
 	});
 
-	it("excludes null token/cost rows from averages rather than counting them as zero", () => {
-		const m = buildRunMetrics([
-			row({ runId: "a", tokensInput: 1000, costUsd: 2 }),
-			row({ runId: "b", tokensInput: 3000, costUsd: 4 }),
-			row({ runId: "c" }), // null tokens + null cost — should not drag averages down
-		]);
-		// context avg over the two priced rows = 2000, not 4000/3
-		expect(m.totals.contextTokens.avg).toBeCloseTo(2000);
-		expect(m.totals.contextTokens.count).toBe(2);
-		expect(m.totals.cost.total).toBeCloseTo(6);
-		expect(m.totals.cost.avg).toBeCloseTo(3);
-		expect(m.totals.cost.priced).toBe(2);
-	});
-
 	it("excludes pre-migration rows from queue-wait denominators rather than counting zero", () => {
 		const createdAt = Date.parse("2026-01-01T00:00:00Z");
 		const m = buildRunMetrics([

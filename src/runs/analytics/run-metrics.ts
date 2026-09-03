@@ -139,6 +139,12 @@ export interface RunTotals {
 	readonly queueWaitMs: StatSummary;
 	readonly contextTokens: StatSummary;
 	readonly tokens: TokenBreakdown;
+	/**
+	 * Per-run cost distribution (warren-ea4e): median / p95 cost across the
+	 * rows whose costUsd was non-null. Complements the `cost` rollup below,
+	 * which carries only the total and the mean.
+	 */
+	readonly costUsd: StatSummary;
 	readonly cost: {
 		readonly total: number;
 		readonly avg: number | null;
@@ -292,6 +298,7 @@ function computeTotals(rows: readonly RunMetricsRow[]): RunTotals {
 	const durations: number[] = [];
 	const queueWaits: number[] = [];
 	const contexts: number[] = [];
+	const costs: number[] = [];
 	for (const r of rows) {
 		if (r.state === "succeeded") succeeded += 1;
 		else if (r.state === "failed") failed += 1;
@@ -303,6 +310,7 @@ function computeTotals(rows: readonly RunMetricsRow[]): RunTotals {
 		if (r.costUsd !== null) {
 			priced += 1;
 			costTotal += r.costUsd;
+			costs.push(r.costUsd);
 		}
 		const dur = durationMsOf(r);
 		if (dur !== null) durations.push(dur);
@@ -327,6 +335,7 @@ function computeTotals(rows: readonly RunMetricsRow[]): RunTotals {
 		queueWaitMs: summarize(queueWaits),
 		contextTokens: summarize(contexts),
 		tokens,
+		costUsd: summarize(costs),
 		cost: { total: costTotal, avg: priced === 0 ? null : costTotal / priced, priced },
 	};
 }
