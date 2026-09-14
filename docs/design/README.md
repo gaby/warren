@@ -79,6 +79,8 @@ A shipped record preserves rationale and contract history. Its `Current truth` f
 | 2026-08-15 | The corpus flywheel |
 | 2026-08-17 | Docker runtime provider |
 | 2026-08-20 | Campaign controller; external-repository mirror pilot; IssueTracker contract; resumable agent environments |
+| 2026-08-22 | Provider-error retry |
+| 2026-08-26 | MCP server |
 
 ## Adding or changing a record
 

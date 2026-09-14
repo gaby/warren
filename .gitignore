@@ -26,6 +26,7 @@ supabase/
 # calls). Never commit — see sd warren-4c8d.
 .pi/sessions/
 .pi/tasks/
+.pi/fusion/
 .idea/
 .vscode/
 test-results/
