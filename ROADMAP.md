@@ -146,7 +146,7 @@ Honest replacements for old sequencing steps with no payer. Each entry names its
 | Azure DevOps on both seams — `AdoForge` in-core forge arm plus `extensions/tracker-ado/` over Boards | v0.19.1 | GH#1172, `docs/design/forge-contract.md`, `docs/design/issue-tracker.md` |
 | In-cluster Postgres — kustomize component, nightly `pg_dump` to GCS, `pg-migrate` cutover tooling, Supabase decommissioned; Spot run pods with preemption classified as retryable | v0.19.1 | pl-6076 (30-day cost review still open), `docs/RUNBOOK-K8S.md` |
 | Console operator-review patches — burn and runtime in the topbar, windowed ops overview, run-detail spend and phase rail, delivery/autonomy/economics analytics rendered in telemetry | v0.19.1 | pl-9fa9, `docs/design/agent-analytics.md` |
-| Warren-armed auto-merge — `pr.autoMerge` opt-in, `armAutoMerge` over a GraphQL transport, fail-closed arming policy, the three `reap.auto_merge_*` events, the plan-run stall warning; migration off the per-repo workflow | unreleased | pl-92a3, `docs/design/forge-auto-merge.md` |
+| Warren-armed auto-merge — `pr.autoMerge` opt-in, `armAutoMerge` over a GraphQL transport, fail-closed arming policy, the three `reap.auto_merge_*` events, the plan-run stall warning; migration off the per-repo workflow | v0.19.2 | pl-92a3, `docs/design/forge-auto-merge.md` |
 
 ## Deliberately not in core
 

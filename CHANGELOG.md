@@ -10,6 +10,19 @@ Releases **0.9.10 and earlier** live in
 
 ## [Unreleased]
 
+## [0.19.2] — 2026-09-19
+
+The auto-merge release. A project can now let warren arm GitHub
+auto-merge on the PRs it opens, with one `pr.autoMerge` block in
+`.warren/config.yaml` and a fail-closed policy that keeps protected
+paths in front of a human. That replaces the per-repo `auto-merge.yml`
+workflow and its secrets. The feature is off until a project opts in.
+The rest of the release is reliability work from three weeks of dogfood
+and contributor reports: a poison event can no longer kill a healthy
+run, harness files stay out of run branches, the judge stops wasting
+retries on a dead credential, and a fresh clone passes `check:all` on
+the first try.
+
 ### Added
 
 - **Warren-armed auto-merge (plan `pl-92a3`, warren-081c).** A project
@@ -23,7 +36,11 @@ Releases **0.9.10 and earlier** live in
   decides arm or skip before any forge call: `protectedPaths` match by
   prefix or glob, `.warren/config.yaml` is always protected, the policy
   resolves from the PR's base branch never the run branch, and an empty
-  or unreadable diff never arms. Reap arms right after `pr_open` (and
+  or unreadable diff never arms. Both the policy and the diff are read
+  from a fresh fetch of the remote into a throwaway bare repository, not
+  from the project's host clone: under the local runtime an agent shares
+  that clone's refs and git config, so nothing it can write there steers
+  its own merge policy (warren-8908, #1276). Reap arms right after `pr_open` (and
   the plan-run reopen seam routes through the same step), best-effort:
   no outcome fails or delays a run. Every opted-in run emits exactly one
   of `reap.auto_merge_armed`, `reap.auto_merge_skipped` (with a stable
@@ -39,6 +56,92 @@ Releases **0.9.10 and earlier** live in
   variables, and its secrets per `docs/project-setup.md`; warren's own
   repo keeps its workflow until a human ports the Article IX paths into
   `protectedPaths`. Design record: `docs/design/forge-auto-merge.md`.
+- **Nightly acceptance health tracking (#1275).** After each nightly
+  acceptance run on `main`, a new `Acceptance health issue` workflow
+  reconciles one GitHub issue, **Nightly acceptance health**. The first
+  failure opens it, a recurring failure reopens it, and a successful run
+  closes it, so a red nightly no longer sits unseen in the Actions tab.
+  Setup failures and timeouts reach the issue too. The reporter runs
+  default-branch code only and needs no extra secret. `ACCEPTANCE.md`
+  documents the loop.
+
+### Changed
+
+- **`POST /runs` refuses an unknown `seedId` (#1234, #1249).** A
+  dispatch that named a seed the project's tracker does not hold used to
+  start a run with no issue behind it. It now fails validation before
+  any run row exists. An acceptance scenario pins the refusal (#1267).
+- **`warren add-project` and `POST /projects` accept a bare
+  `github.com/<owner>/<name>` URL (#1252).** The bare host form
+  defaults to HTTPS. Other transports pass through untouched.
+- **Extensions are held to the gates (#1182, #1226).** The root tsconfig
+  and Biome config exclude `extensions/` on purpose, so an extension
+  could sit red on `main` behind green gates, and
+  `campaign-controller` did, at 15 type errors and 8 lint errors. The
+  new `check:extensions` guard runs every extension's declared
+  `typecheck` and `lint` inside the `lint` gate, and that backlog
+  is repaired.
+
+### Fixed
+
+- **A NUL character in an event payload no longer kills the run
+  (warren-fb5e, #1260, #1261).** Postgres `jsonb` rejects U+0000. The
+  bridge read the failed insert as a stream error, reconnected, replayed
+  the same event, and repeated until `bridge_lost` failed a healthy
+  run. The events repo now replaces U+0000 with U+FFFD on both dialects.
+  The bridge drops a single event that will not append, logs it, and
+  keeps streaming. Three consecutive append failures still rethrow, so a
+  real store outage reaches the reconnect path, and a dropped terminal
+  event still lets reap finalize the run.
+- **Harness state and seed drops stay out of run branches (#1239,
+  #1258).** In a repo whose `.gitignore` does not cover warren's
+  files, an agent's broad `git add` swept `.pi/sessions/*.jsonl`,
+  `.warren/agent.json`, and `.gitconfig.burrow` into the run branch
+  and on into the pull request. Warren now installs a git exclude when
+  it materializes the workspace: a per-worktree `core.excludesFile`
+  for worktrees, a managed block in `.git/info/exclude` for clones.
+  Each harness adapter declares its own patterns through a new
+  `commitExcludes` field.
+- **Provider retry: an explicit `finish_reason: error` is transient
+  (#1259, part of #1238).** The classifier knew the missing
+  `finish_reason` spelling and not the explicit one, so a broken
+  stream skipped its one retry.
+- **Sandbox git preflight probes the binary it names (#1255).** The
+  probe ran bare `git --version`, and `execvp` resumes its PATH walk
+  on several errors, so a later `git` could answer for a broken one and
+  the preflight passed. It now runs the resolved binary by absolute
+  path.
+- **Judge: a provider error ends the judgment at once (warren-0528,
+  #1235, #1245).** A provider failure does not throw in the Pi stream
+  contract, so the loop called it a malformed verdict, hid the
+  provider's message, and spent every remaining attempt against the
+  same dead credential. It now ends as `judge_error` on the first
+  attempt with the provider's text.
+- **Judge: a $0 failure no longer marks a run permanently unjudged
+  (warren-d8df, #1231, #1246).** An expired key or an unreachable model
+  wrote a marker that dropped the run from every future sample without
+  a model ever reading it. A non-verdict outcome at $0 now writes no
+  row and the collector leaves its cursor in place, so the next cycle
+  lists the run again.
+- **Console: two layout regressions from the 0.19.1 patch series
+  (#1225).** The Services card rows fill the card again, and the
+  run-detail aside scrolls on its own at `xl` instead of clipping
+  Prompt and Steering. The sidebar brand now links home (#1252).
+- **A fresh clone passes `check:all` on the first run (#1236, #1244,
+  #1269, #1270).** The root install covers neither `src/ui` nor
+  `extensions/*`, so a new contributor's first `check:all` failed on
+  module errors and the second one passed with nothing changed. The
+  `lint` gate now repairs both with a frozen install before any gate
+  reads them, and `check:coverage` does the same before its test
+  sweep.
+- **CI.** The Postgres test job installs the UI workspace first
+  (#1251). `bundle-size-autoheal` installs the extensions before it
+  commits (#1253). The acceptance job lets bwrap configure loopback on
+  `ubuntu-latest` (#1257). Tests that need `kubectl` report as
+  skipped when it is absent instead of passing silently (#1243), and
+  the deploy-trigger test stub no longer depends on `node` (#1247,
+  #1248). The nightly acceptance suite runs again after the self-host
+  scenario repair (#1275).
 
 ## [0.19.1] — 2026-09-03
 
